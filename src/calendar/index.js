@@ -1,13 +1,16 @@
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import {
   View,
-  ViewPropTypes
+  ViewPropTypes,
+  Text,
+  FlatList,
+  TouchableOpacity,
 } from 'react-native';
 import PropTypes from 'prop-types';
 
 import XDate from 'xdate';
 import dateutils from '../dateutils';
-import {xdateToData, parseDate} from '../interface';
+import { xdateToData, parseDate } from '../interface';
 import styleConstructor from './style';
 import Day from './day/basic';
 import UnitDay from './day/period';
@@ -35,6 +38,16 @@ class Calendar extends Component {
     minDate: PropTypes.any,
     // Maximum date that can be selected, dates after maxDate will be grayed out. Default = undefined
     maxDate: PropTypes.any,
+
+    //min year to be shown in year list
+    minYear: PropTypes.number,
+
+    //max year to be shown in year list
+    maxYear: PropTypes.number,
+
+    toggleYearSelection: PropTypes.bool,
+
+    onYearPress: PropTypes.func,
 
     // If firstDay=1 week starts from Monday. Note that dayNames and dayNamesShort should still start from Sunday.
     firstDay: PropTypes.number,
@@ -80,49 +93,72 @@ class Calendar extends Component {
       currentMonth = XDate();
     }
     this.state = {
-      currentMonth
+      currentMonth,
+      showYearSelection: false,
     };
 
     this.updateMonth = this.updateMonth.bind(this);
     this.addMonth = this.addMonth.bind(this);
     this.pressDay = this.pressDay.bind(this);
     this.shouldComponentUpdate = shouldComponentUpdate;
+    this.renderYearSelection = this.renderYearSelection.bind(this);
   }
 
   componentWillReceiveProps(nextProps) {
-    const current= parseDate(nextProps.current);
-    if (current && current.toString('yyyy MM') !== this.state.currentMonth.toString('yyyy MM')) {
+    const current = parseDate(nextProps.current);
+    if (
+      current &&
+      current.toString('yyyy MM') !==
+        this.state.currentMonth.toString('yyyy MM')
+    ) {
       this.setState({
-        currentMonth: current.clone()
+        currentMonth: current.clone(),
       });
     }
   }
 
+  shouldComponentUpdate(nextProps, nextState) {
+    if (nextState.showYearSelection !== this.state.showYearSelection) {
+      return true;
+    }
+    return false;
+  }
+
   updateMonth(day, doNotTriggerListeners) {
-    if (day.toString('yyyy MM') === this.state.currentMonth.toString('yyyy MM')) {
+    if (
+      day.toString('yyyy MM') === this.state.currentMonth.toString('yyyy MM')
+    ) {
       return;
     }
-    this.setState({
-      currentMonth: day.clone()
-    }, () => {
-      if (!doNotTriggerListeners) {
-        const currMont = this.state.currentMonth.clone();
-        if (this.props.onMonthChange) {
-          this.props.onMonthChange(xdateToData(currMont));
+    this.setState(
+      {
+        currentMonth: day.clone(),
+      },
+      () => {
+        if (!doNotTriggerListeners) {
+          const currMont = this.state.currentMonth.clone();
+          if (this.props.onMonthChange) {
+            this.props.onMonthChange(xdateToData(currMont));
+          }
+          if (this.props.onVisibleMonthsChange) {
+            this.props.onVisibleMonthsChange([xdateToData(currMont)]);
+          }
         }
-        if (this.props.onVisibleMonthsChange) {
-          this.props.onVisibleMonthsChange([xdateToData(currMont)]);
-        }
-      }
-    });
+      },
+    );
   }
 
   pressDay(date) {
     const day = parseDate(date);
     const minDate = parseDate(this.props.minDate);
     const maxDate = parseDate(this.props.maxDate);
-    if (!(minDate && !dateutils.isGTE(day, minDate)) && !(maxDate && !dateutils.isLTE(day, maxDate))) {
-      const shouldUpdateMonth = this.props.disableMonthChange === undefined || !this.props.disableMonthChange;
+    if (
+      !(minDate && !dateutils.isGTE(day, minDate)) &&
+      !(maxDate && !dateutils.isLTE(day, maxDate))
+    ) {
+      const shouldUpdateMonth =
+        this.props.disableMonthChange === undefined ||
+        !this.props.disableMonthChange;
       if (shouldUpdateMonth) {
         this.updateMonth(day);
       }
@@ -142,7 +178,10 @@ class Calendar extends Component {
     let state = '';
     if (this.props.disabledByDefault) {
       state = 'disabled';
-    } else if ((minDate && !dateutils.isGTE(day, minDate)) || (maxDate && !dateutils.isLTE(day, maxDate))) {
+    } else if (
+      (minDate && !dateutils.isGTE(day, minDate)) ||
+      (maxDate && !dateutils.isLTE(day, maxDate))
+    ) {
       state = 'disabled';
     } else if (!dateutils.sameMonth(day, this.state.currentMonth)) {
       state = 'disabled';
@@ -150,11 +189,14 @@ class Calendar extends Component {
       state = 'today';
     }
     let dayComp;
-    if (!dateutils.sameMonth(day, this.state.currentMonth) && this.props.hideExtraDays) {
+    if (
+      !dateutils.sameMonth(day, this.state.currentMonth) &&
+      this.props.hideExtraDays
+    ) {
       if (this.props.markingType === 'period') {
-        dayComp = (<View key={id} style={{flex: 1}}/>);
+        dayComp = <View key={id} style={{ flex: 1 }} />;
       } else {
-        dayComp = (<View key={id} style={{width: 32}}/>);
+        dayComp = <View key={id} style={{ width: 32 }} />;
       }
     } else {
       const DayComp = this.getDayComponent();
@@ -181,12 +223,12 @@ class Calendar extends Component {
     }
 
     switch (this.props.markingType) {
-    case 'period':
-      return UnitDay;
-    case 'multi-dot':
-      return MultiDotDay;
-    default:
-      return Day;
+      case 'period':
+        return UnitDay;
+      case 'multi-dot':
+        return MultiDotDay;
+      default:
+        return Day;
     }
   }
 
@@ -194,7 +236,8 @@ class Calendar extends Component {
     if (!this.props.markedDates) {
       return false;
     }
-    const dates = this.props.markedDates[day.toString('yyyy-MM-dd')] || EmptyArray;
+    const dates =
+      this.props.markedDates[day.toString('yyyy-MM-dd')] || EmptyArray;
     if (dates.length || dates) {
       return dates;
     } else {
@@ -202,8 +245,12 @@ class Calendar extends Component {
     }
   }
 
-  renderWeekNumber (weekNumber) {
-    return <Day key={`week-${weekNumber}`} theme={this.props.theme} state='disabled'>{weekNumber}</Day>;
+  renderWeekNumber(weekNumber) {
+    return (
+      <Day key={`week-${weekNumber}`} theme={this.props.theme} state="disabled">
+        {weekNumber}
+      </Day>
+    );
   }
 
   renderWeek(days, id) {
@@ -216,7 +263,11 @@ class Calendar extends Component {
       week.unshift(this.renderWeekNumber(days[days.length - 1].getWeek()));
     }
 
-    return (<View style={this.style.week} key={id}>{week}</View>);
+    return (
+      <View style={this.style.week} key={id}>
+        {week}
+      </View>
+    );
   }
 
   render() {
@@ -228,12 +279,32 @@ class Calendar extends Component {
     let indicator;
     const current = parseDate(this.props.current);
     if (current) {
-      const lastMonthOfDay = current.clone().addMonths(1, true).setDate(1).addDays(-1).toString('yyyy-MM-dd');
-      if (this.props.displayLoadingIndicator &&
-          !(this.props.markedDates && this.props.markedDates[lastMonthOfDay])) {
+      const lastMonthOfDay = current
+        .clone()
+        .addMonths(1, true)
+        .setDate(1)
+        .addDays(-1)
+        .toString('yyyy-MM-dd');
+      if (
+        this.props.displayLoadingIndicator &&
+        !(this.props.markedDates && this.props.markedDates[lastMonthOfDay])
+      ) {
         indicator = true;
       }
     }
+
+    let otherHeaderProps = {};
+    if (this.props.toggleYearSelection) {
+      otherHeaderProps = {
+        ...otherHeaderProps,
+        onHeaderPress: () => {
+          this.renderYearSelection();
+        },
+      };
+    }
+
+    let yearList = this.renderYear();
+
     return (
       <View style={[this.style.container, this.props.style]}>
         <CalendarHeader
@@ -247,10 +318,47 @@ class Calendar extends Component {
           monthFormat={this.props.monthFormat}
           hideDayNames={this.props.hideDayNames}
           weekNumbers={this.props.showWeekNumbers}
+          {...otherHeaderProps}
         />
-        {weeks}
-      </View>);
+        {this.state.showYearSelection ? yearList : weeks}
+      </View>
+    );
+  }
+
+  renderYearSelection() {
+    this.setState({ showYearSelection: !this.state.showYearSelection });
+  }
+
+  addYear(count) {
+    this.updateMonth(this.state.currentMonth.clone().addYears(count, true));
+  }
+
+  enderYear() {
+    const year = [];
+    for (let i = 0; i < this.props.maxYear - this.props.minYear + 1; i++) {
+      year[i] = { key: this.props.minYear + i };
+    }
+    return (
+      <FlatList
+        style={{ marginTop: 20, marginBottom: 20 }}
+        data={year}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            onPress={() => {
+              this.addYear(item.key - this.state.currentMonth.getFullYear());
+              this.props.onYearPress && this.props.onYearPress(item.key);
+            }}
+          >
+            <Text style={this.style.yearText}>{item.key}</Text>
+          </TouchableOpacity>
+        )}
+      />
+    );
   }
 }
 
+Calendar.defaultProps = {
+  minYear: 1900,
+  maxYear: new Date().getFullYear(),
+};
 export default Calendar;
