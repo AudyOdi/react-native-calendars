@@ -18,6 +18,7 @@ class CalendarHeader extends Component {
     hideDayNames: PropTypes.bool,
     weekNumbers: PropTypes.bool,
     onHeaderPress: PropTypes.func,
+    isYearSelectionShown: PropTypes.bool,
   };
 
   constructor(props) {
@@ -46,6 +47,9 @@ class CalendarHeader extends Component {
       return true;
     }
     if (nextProps.hideDayNames !== this.props.hideDayNames) {
+      return true;
+    }
+    if (nextProps.isYearSelectionShown !== this.props.isYearSelectionShown) {
       return true;
     }
     return false;
@@ -114,23 +118,24 @@ class CalendarHeader extends Component {
           </View>
           {rightArrow}
         </View>
-        {!this.props.hideDayNames && (
-          <View style={this.style.week}>
-            {this.props.weekNumbers && (
-              <Text allowFontScaling={false} style={this.style.dayHeader} />
-            )}
-            {weekDaysNames.map((day, idx) => (
-              <Text
-                allowFontScaling={false}
-                key={idx}
-                style={this.style.dayHeader}
-                numberOfLines={1}
-              >
-                {day}
-              </Text>
-            ))}
-          </View>
-        )}
+        {!this.props.hideDayNames &&
+          !this.props.isYearSelectionShown && (
+            <View style={this.style.week}>
+              {this.props.weekNumbers && (
+                <Text allowFontScaling={false} style={this.style.dayHeader} />
+              )}
+              {weekDaysNames.map((day, idx) => (
+                <Text
+                  allowFontScaling={false}
+                  key={idx}
+                  style={this.style.dayHeader}
+                  numberOfLines={1}
+                >
+                  {day}
+                </Text>
+              ))}
+            </View>
+          )}
       </View>
     );
   }

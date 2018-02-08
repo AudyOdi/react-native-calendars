@@ -23,6 +23,8 @@ const viewPropTypes = ViewPropTypes || View.propTypes;
 
 const EmptyArray = [];
 
+const YEAR_ROW_HEIGHT = 50;
+
 class Calendar extends Component {
   static propTypes = {
     // Specify theme properties to override specific styles for calendar parts. Default = {}
@@ -303,7 +305,7 @@ class Calendar extends Component {
       };
     }
 
-    let yearList = this.renderYear();
+    let yearList = this.renderYearList();
 
     return (
       <View style={[this.style.container, this.props.style]}>
@@ -318,6 +320,7 @@ class Calendar extends Component {
           monthFormat={this.props.monthFormat}
           hideDayNames={this.props.hideDayNames}
           weekNumbers={this.props.showWeekNumbers}
+          isYearSelectionShown={this.state.showYearSelection}
           {...otherHeaderProps}
         />
         {this.state.showYearSelection ? yearList : weeks}
@@ -327,31 +330,68 @@ class Calendar extends Component {
 
   renderYearSelection() {
     this.setState({ showYearSelection: !this.state.showYearSelection });
+    this.forceUpdate();
   }
 
   addYear(count) {
     this.updateMonth(this.state.currentMonth.clone().addYears(count, true));
   }
 
-  enderYear() {
-    const year = [];
+  renderYearList() {
+    const years = [];
     for (let i = 0; i < this.props.maxYear - this.props.minYear + 1; i++) {
-      year[i] = { key: this.props.minYear + i };
+      years[i] = { key: this.props.minYear + i };
     }
+
+    let selectionIndex = years.findIndex(
+      item => item.key === this.state.currentMonth.getFullYear(),
+    );
+
     return (
       <FlatList
+        ref={node => {
+          this._yearList = node;
+        }}
         style={{ marginTop: 20, marginBottom: 20 }}
-        data={year}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => {
-              this.addYear(item.key - this.state.currentMonth.getFullYear());
-              this.props.onYearPress && this.props.onYearPress(item.key);
-            }}
-          >
-            <Text style={this.style.yearText}>{item.key}</Text>
-          </TouchableOpacity>
-        )}
+        data={years}
+        initialScrollIndex={selectionIndex > -1 ? selectionIndex : 0}
+        onScrollToIndexFailed={() => {
+          this._yearList &&
+            selectionIndex > -1 &&
+            this._yearList.scrollToItem(selectionIndex);
+        }}
+        getItemLayout={(data, index) => ({
+          length: YEAR_ROW_HEIGHT,
+          offset: YEAR_ROW_HEIGHT * index,
+          index,
+        })}
+        initialNumToRender={years.length}
+        renderItem={({ item }) => {
+          let isSelected = item.key === this.state.currentMonth.getFullYear();
+          return (
+            <TouchableOpacity
+              onPress={() => {
+                this.addYear(item.key - this.state.currentMonth.getFullYear());
+                this.renderYearSelection();
+                this.props.onYearPress && this.props.onYearPress(item.key);
+              }}
+              style={[
+                this.style.yearRow,
+                { height: YEAR_ROW_HEIGHT },
+                isSelected ? this.style.yearSelected : null,
+              ]}
+            >
+              <Text
+                style={[
+                  this.style.yearText,
+                  isSelected ? this.style.yearTextSelected : null,
+                ]}
+              >
+                {item.key}
+              </Text>
+            </TouchableOpacity>
+          );
+        }}
       />
     );
   }

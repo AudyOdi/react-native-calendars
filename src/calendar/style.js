@@ -18,13 +18,22 @@ export default function getStyle(theme = {}) {
       flexDirection: 'row',
       justifyContent: 'space-around',
     },
+    yearRow: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
     yearText: {
       fontSize: appStyle.textYearFontSize,
       fontFamily: appStyle.textYearFontFamily,
       fontWeight: '300',
       color: appStyle.yearTextColor,
-      marginBottom: 40,
-      alignSelf: 'center',
+    },
+    yearSelected: {
+      backgroundColor: appStyle.textSecondaryColor,
+    },
+    yearTextSelected: {
+      color: 'white',
     },
     ...(theme[STYLESHEET_ID] || {}),
   });
