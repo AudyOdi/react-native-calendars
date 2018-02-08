@@ -338,14 +338,28 @@ class Calendar extends Component {
   }
 
   renderYearList() {
-    const years = [];
+    let years = [];
     for (let i = 0; i < this.props.maxYear - this.props.minYear + 1; i++) {
       years[i] = { key: this.props.minYear + i };
     }
+    years = years.sort((a, b) => {
+      return b.key - a.key;
+    });
 
     let selectionIndex = years.findIndex(
       item => item.key === this.state.currentMonth.getFullYear(),
     );
+
+    let initialScrollIndex = 0;
+    if (selectionIndex <= years.length - 4) {
+      initialScrollIndex = selectionIndex > -1 ? selectionIndex : 0;
+    } else if (selectionIndex === years.length - 3) {
+      initialScrollIndex = selectionIndex > -1 ? selectionIndex - 1 : 0;
+    } else if (selectionIndex === years.length - 2) {
+      initialScrollIndex = selectionIndex > -1 ? selectionIndex - 2 : 0;
+    } else {
+      initialScrollIndex = selectionIndex > -1 ? selectionIndex - 3 : 0;
+    }
 
     return (
       <FlatList
@@ -354,18 +368,14 @@ class Calendar extends Component {
         }}
         style={{ marginTop: 20, marginBottom: 20 }}
         data={years}
-        initialScrollIndex={selectionIndex > -1 ? selectionIndex : 0}
-        onScrollToIndexFailed={() => {
-          this._yearList &&
-            selectionIndex > -1 &&
-            this._yearList.scrollToItem(selectionIndex);
-        }}
+        initialScrollIndex={initialScrollIndex}
         getItemLayout={(data, index) => ({
           length: YEAR_ROW_HEIGHT,
           offset: YEAR_ROW_HEIGHT * index,
           index,
         })}
-        initialNumToRender={years.length}
+        windowSize={5}
+        initialNumToRender={10}
         renderItem={({ item }) => {
           let isSelected = item.key === this.state.currentMonth.getFullYear();
           return (
